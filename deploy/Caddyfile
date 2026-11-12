@@ -1,0 +1,63 @@
+# stock_primer behind Caddy: HTTPS, security headers, and a login wall (forward_auth -> the API's /auth/check).
+#
+#   caddy run --config deploy/Caddyfile        (deploy/start.ps1 sets the variables below)
+#
+# STOCK_PRIMER_SITE      the address you open in the browser:
+#                          localhost                     this PC only (Caddy's own local certificate)
+#                          stock-primer.<tailnet>.ts.net  Tailscale: phone + laptop, real certificate, nothing exposed to the internet
+#                          a LAN name such as primer.lan  also uncomment `tls internal` below and trust Caddy's root on each device
+# STOCK_PRIMER_WEB_ROOT  the Angular build (web/dist/web/browser)
+#
+# The API, scheduler and bot listen on 127.0.0.1 only; Caddy is the single way in.
+
+{
+	admin localhost:2019
+}
+
+{$STOCK_PRIMER_SITE:localhost} {
+	# tls internal
+
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		# Angular adds component styles at runtime, so inline styles are allowed; scripts are not.
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+		-Server
+	}
+
+	# The only unauthenticated routes: the login form, its POST, logout, and the check itself.
+	handle /auth/* {
+		reverse_proxy 127.0.0.1:8000
+	}
+
+	handle {
+		forward_auth 127.0.0.1:8000 {
+			uri /auth/check
+		}
+
+		handle /api/* {
+			reverse_proxy 127.0.0.1:8000 {
+				flush_interval -1    # server-sent events (job progress) stream straight through
+			}
+		}
+
+		handle {
+			root * {$STOCK_PRIMER_WEB_ROOT:web/dist/web/browser}
+			header /index.html Cache-Control "no-store"
+			try_files {path} /index.html
+			file_server
+		}
+	}
+
+	log {
+		output file {$STOCK_PRIMER_LOG_DIR:data/logs}/caddy-access.log {
+			roll_size 10MiB
+			roll_keep 5
+		}
+	}
+}

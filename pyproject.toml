@@ -1,0 +1,45 @@
+[project]
+name = "stock-primer"
+version = "0.1.0"
+description = "Agentic stock research platform for Indian equities - decision support only"
+requires-python = ">=3.11"
+dependencies = [
+    "anthropic>=1.13",
+    "langgraph>=1.2",
+    "pydantic>=2.13",
+    "pydantic-settings>=2.15",
+    "sqlalchemy>=2.1",
+    "alembic>=1.20",
+    "pandas>=3.0",
+    "numpy>=2.4",
+    "jugaad-data>=0.35",
+    "pypdf>=6.0",
+    "pypdfium2>=5.0",
+    "rapidocr-onnxruntime>=1.4",
+    "curl_cffi>=0.10",
+    "truststore>=0.10",
+    "requests>=2.32",
+    "mcp>=2.3",
+    "python-telegram-bot>=22",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=9"]
+postgres = ["psycopg[binary]>=3.2"]
+
+[project.scripts]
+stock-primer = "orchestrator.cli:main"
+stock-primer-data = "ingestion.cli:main"
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["orchestrator*", "core*", "ingestion*", "quant*", "mcp_servers*", "bot*"]
+
+[tool.setuptools.package-data]
+orchestrator = ["prompts/**/*.md"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

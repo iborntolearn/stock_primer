@@ -1,0 +1,16 @@
+.venv/
+.env
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+data/
+*.db
+*.db-shm
+*.db-wal
+*.log
+web/node_modules/
+web/dist/
+web/.angular/
+.claude/
+.vscode/
